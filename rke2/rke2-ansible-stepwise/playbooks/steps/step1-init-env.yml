@@ -1,0 +1,32 @@
+---
+# Step 1: 初始化环境
+# 用途: 测试连接、收集信息、配置主机名和网络
+
+- name: "Step 1 - 初始化基础环境"
+  hosts: rke2_cluster
+  gather_facts: yes
+  roles:
+    - step1-init-env
+
+- name: "Step 1 - 总结"
+  hosts: localhost
+  gather_facts: no
+  tasks:
+    - name: 显示完成信息
+      debug:
+        msg: |
+          ========================================
+          ✓ Step 1 完成 - 环境初始化成功
+          ========================================
+          
+          已完成:
+          - 测试所有节点连接
+          - 收集系统信息
+          - 配置主机名
+          - 更新 hosts 文件
+          - 设置时区
+          - 验证网络连通性
+          
+          下一步:
+          执行 Step 2 - 准备服务器环境
+          ansible-playbook playbooks/steps/step2-prepare-server.yml

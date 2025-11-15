@@ -1,0 +1,60 @@
+---
+# Step 4: 安装 RKE2 Agent
+
+- name: 创建 RKE2 配置目录
+  file:
+    path: "{{ rke2_config_dir }}"
+    state: directory
+    mode: '0755'
+
+- name: 生成 RKE2 Agent 配置
+  copy:
+    dest: "{{ rke2_config_dir }}/config.yaml"
+    content: |
+      server: "{{ rke2_api_server }}"
+      token: "{{ hostvars['localhost']['rke2_node_token'] | default(rke2_token) }}"
+      node-label:
+        - "node-role.kubernetes.io/worker=true"
+      selinux: false
+    mode: '0600'
+
+- name: 检查 RKE2 是否已安装
+  stat:
+    path: /usr/local/bin/rke2
+  register: rke2_installed
+
+- name: 下载 RKE2 安装脚本
+  get_url:
+    url: https://get.rke2.io
+    dest: /tmp/install-rke2.sh
+    mode: '0755'
+  when: not rke2_installed.stat.exists
+
+- name: 安装 RKE2 Agent
+  shell: |
+    INSTALL_RKE2_VERSION="{{ rke2_version }}" \
+    INSTALL_RKE2_CHANNEL="{{ rke2_channel }}" \
+    INSTALL_RKE2_TYPE="agent" \
+    /tmp/install-rke2.sh
+  environment:
+    DEBIAN_FRONTEND: noninteractive
+  when: not rke2_installed.stat.exists
+
+- name: 启用 rke2-agent 服务
+  systemd:
+    name: rke2-agent
+    enabled: yes
+    daemon_reload: yes
+
+- name: 启动 rke2-agent 服务
+  systemd:
+    name: rke2-agent
+    state: started
+
+- name: 等待 Agent 启动
+  pause:
+    seconds: 30
+
+- name: Step 4 完成提示
+  debug:
+    msg: "✓ Step 4 完成 - RKE2 Agent 安装成功"

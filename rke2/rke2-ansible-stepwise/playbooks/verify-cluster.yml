@@ -1,0 +1,74 @@
+---
+# 验证 RKE2 集群状态
+
+- name: "验证集群状态"
+  hosts: rke2_servers[0]
+  gather_facts: no
+  tasks:
+    - name: 检查节点状态
+      shell: kubectl get nodes -o wide
+      register: nodes
+      changed_when: false
+
+    - name: 显示节点状态
+      debug:
+        msg: "{{ nodes.stdout_lines }}"
+
+    - name: 检查系统 Pod
+      shell: kubectl get pods -n kube-system
+      register: system_pods
+      changed_when: false
+
+    - name: 显示系统 Pod
+      debug:
+        msg: "{{ system_pods.stdout_lines }}"
+
+    - name: 检查所有命名空间
+      shell: kubectl get pods -A
+      register: all_pods
+      changed_when: false
+
+    - name: 显示所有 Pod
+      debug:
+        msg: "{{ all_pods.stdout_lines }}"
+
+    - name: 获取集群信息
+      shell: kubectl cluster-info
+      register: cluster_info
+      changed_when: false
+
+    - name: 显示集群信息
+      debug:
+        msg: "{{ cluster_info.stdout_lines }}"
+
+    - name: 检查 RKE2 版本
+      shell: rke2 --version
+      register: rke2_version
+      changed_when: false
+
+    - name: 显示版本信息
+      debug:
+        msg: "{{ rke2_version.stdout_lines }}"
+
+- name: "检查所有节点服务状态"
+  hosts: rke2_cluster
+  gather_facts: no
+  tasks:
+    - name: 检查 RKE2 服务状态 (Server)
+      systemd:
+        name: rke2-server
+      register: server_status
+      when: "'rke2_servers' in group_names"
+
+    - name: 检查 RKE2 服务状态 (Agent)
+      systemd:
+        name: rke2-agent
+      register: agent_status
+      when: "'rke2_agents' in group_names"
+
+    - name: 显示服务状态
+      debug:
+        msg: |
+          节点: {{ inventory_hostname }}
+          服务: {{ 'rke2-server' if 'rke2_servers' in group_names else 'rke2-agent' }}
+          状态: {{ server_status.status.ActiveState if 'rke2_servers' in group_names else agent_status.status.ActiveState }}

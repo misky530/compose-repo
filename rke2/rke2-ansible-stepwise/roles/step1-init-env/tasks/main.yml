@@ -1,0 +1,46 @@
+---
+# Step 1: 初始化基础环境
+
+- name: 测试节点连接
+  ping:
+
+- name: 收集系统信息
+  setup:
+
+- name: 显示系统信息
+  debug:
+    msg: |
+      主机: {{ inventory_hostname }}
+      IP: {{ ansible_host }}
+      OS: {{ ansible_distribution }} {{ ansible_distribution_version }}
+      内核: {{ ansible_kernel }}
+      CPU: {{ ansible_processor_vcpus }}
+      内存: {{ ansible_memtotal_mb }}MB
+
+- name: 设置主机名
+  hostname:
+    name: "{{ inventory_hostname }}"
+
+- name: 更新 /etc/hosts
+  lineinfile:
+    path: /etc/hosts
+    line: "{{ hostvars[item].ansible_host }} {{ item }}"
+    state: present
+  loop: "{{ groups['rke2_cluster'] }}"
+
+- name: 设置时区
+  timezone:
+    name: "{{ timezone }}"
+
+- name: 检查网络连通性
+  shell: |
+    ping -c 3 {{ hostvars[item].ansible_host }}
+  loop: "{{ groups['rke2_cluster'] }}"
+  when: inventory_hostname != item
+  changed_when: false
+  register: network_check
+
+- name: 显示网络检查结果
+  debug:
+    msg: "✓ 网络连通性正常"
+  when: network_check is succeeded

@@ -1,0 +1,72 @@
+---
+# Step 4: 安装 RKE2 Agent
+# 用途: 在 Worker 节点安装 RKE2 Agent 并加入集群
+
+- name: "Step 4 - 安装 RKE2 Agent"
+  hosts: rke2_agents
+  gather_facts: yes
+  roles:
+    - step4-install-agent
+
+- name: "Step 4 - 验证集群"
+  hosts: rke2_servers[0]
+  gather_facts: no
+  tasks:
+    - name: 等待所有节点就绪
+      shell: |
+        /var/lib/rancher/rke2/bin/kubectl --kubeconfig /etc/rancher/rke2/rke2.yaml \
+        get nodes --no-headers | grep -c " Ready"
+      register: ready_nodes
+      until: ready_nodes.stdout | int == groups['rke2_cluster'] | length
+      retries: 20
+      delay: 15
+      changed_when: false
+
+    - name: 获取集群节点状态
+      shell: |
+        /var/lib/rancher/rke2/bin/kubectl --kubeconfig /etc/rancher/rke2/rke2.yaml \
+        get nodes -o wide
+      register: nodes_status
+      changed_when: false
+
+    - name: 显示节点状态
+      debug:
+        msg: "{{ nodes_status.stdout_lines }}"
+
+    - name: 获取所有 Pod 状态
+      shell: |
+        /var/lib/rancher/rke2/bin/kubectl --kubeconfig /etc/rancher/rke2/rke2.yaml \
+        get pods -A
+      register: pods_status
+      changed_when: false
+
+    - name: 显示 Pod 状态
+      debug:
+        msg: "{{ pods_status.stdout_lines }}"
+
+- name: "Step 4 - 总结"
+  hosts: localhost
+  gather_facts: no
+  tasks:
+    - name: 显示完成信息
+      debug:
+        msg: |
+          ========================================
+          ✓ Step 4 完成 - 集群部署成功!
+          ========================================
+          
+          已完成:
+          - 安装 RKE2 Agent
+          - Worker 加入集群
+          - 验证所有节点就绪
+          
+          集群信息:
+          - Master: {{ groups['rke2_servers'] | length }} 个
+          - Worker: {{ groups['rke2_agents'] | length }} 个
+          - 总节点: {{ groups['rke2_cluster'] | length }} 个
+          
+          后续操作:
+          1. 验证集群: ansible-playbook playbooks/verify-cluster.yml
+          2. 访问集群: ssh caiqian@MASTER_IP
+          3. 查看节点: sudo kubectl get nodes
+          4. 查看 Pod: sudo kubectl get pods -A

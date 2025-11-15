@@ -1,0 +1,36 @@
+---
+# Step 3: 安装 RKE2 Server
+# 用途: 在 Master 节点安装 RKE2 Server
+
+- name: "Step 3 - 安装 RKE2 Server"
+  hosts: rke2_servers
+  gather_facts: yes
+  roles:
+    - step3-install-server
+
+- name: "Step 3 - 总结"
+  hosts: localhost
+  gather_facts: no
+  tasks:
+    - name: 显示完成信息
+      debug:
+        msg: |
+          ========================================
+          ✓ Step 3 完成 - RKE2 Server 安装成功
+          ========================================
+          
+          已完成:
+          - 创建 RKE2 配置
+          - 下载并安装 RKE2 Server
+          - 启动 rke2-server 服务
+          - 配置 kubectl
+          - 获取 node-token
+          
+          Token 已保存，将用于 Worker 加入集群
+          
+          下一步:
+          执行 Step 4 - 安装 RKE2 Agent (Workers)
+          ansible-playbook playbooks/steps/step4-install-agent.yml
+          
+          验证 Master 状态:
+          ssh caiqian@MASTER_IP 'sudo kubectl get nodes'

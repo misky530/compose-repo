@@ -1,0 +1,88 @@
+---
+# Step 2: 准备服务器环境
+
+- name: 禁用 swap
+  shell: |
+    swapoff -a
+    sed -i '/swap/d' /etc/fstab
+  changed_when: false
+
+- name: 验证 swap 已禁用
+  shell: swapon --show
+  register: swap_status
+  changed_when: false
+  failed_when: swap_status.stdout != ""
+
+- name: 加载内核模块
+  modprobe:
+    name: "{{ item }}"
+    state: present
+  loop:
+    - overlay
+    - br_netfilter
+
+- name: 配置内核模块开机加载
+  copy:
+    dest: /etc/modules-load.d/rke2.conf
+    content: |
+      overlay
+      br_netfilter
+    mode: '0644'
+
+- name: 配置内核参数
+  sysctl:
+    name: "{{ item.key }}"
+    value: "{{ item.value }}"
+    sysctl_file: /etc/sysctl.d/99-rke2.conf
+    reload: yes
+  loop:
+    - { key: 'net.bridge.bridge-nf-call-iptables', value: '1' }
+    - { key: 'net.bridge.bridge-nf-call-ip6tables', value: '1' }
+    - { key: 'net.ipv4.ip_forward', value: '1' }
+    - { key: 'vm.swappiness', value: '0' }
+    - { key: 'fs.file-max', value: '{{ system_max_open_files }}' }
+
+- name: 更新 apt 缓存
+  apt:
+    update_cache: yes
+    cache_valid_time: 3600
+
+- name: 安装基础软件包
+  apt:
+    name:
+      - curl
+      - wget
+      - vim
+      - git
+      - htop
+      - net-tools
+      - iptables
+      - apt-transport-https
+      - ca-certificates
+      - gnupg
+      - nfs-common
+      - open-iscsi
+    state: present
+
+- name: 调整系统资源限制
+  pam_limits:
+    domain: '*'
+    limit_type: "{{ item.limit_type }}"
+    limit_item: "{{ item.limit_item }}"
+    value: "{{ item.value }}"
+  loop:
+    - { limit_type: 'soft', limit_item: 'nofile', value: '{{ system_max_open_files }}' }
+    - { limit_type: 'hard', limit_item: 'nofile', value: '{{ system_max_open_files }}' }
+    - { limit_type: 'soft', limit_item: 'nproc', value: '{{ system_max_processes }}' }
+    - { limit_type: 'hard', limit_item: 'nproc', value: '{{ system_max_processes }}' }
+
+- name: 禁用防火墙
+  systemd:
+    name: ufw
+    state: stopped
+    enabled: no
+  ignore_errors: yes
+
+- name: 验证环境准备完成
+  debug:
+    msg: "✓ Step 2 完成 - 服务器环境准备就绪"

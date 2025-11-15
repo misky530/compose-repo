@@ -1,0 +1,119 @@
+---
+# Step 3: 安装 RKE2 Server
+
+- name: 创建 RKE2 配置目录
+  file:
+    path: "{{ rke2_config_dir }}"
+    state: directory
+    mode: '0755'
+
+- name: 生成 RKE2 Server 配置
+  copy:
+    dest: "{{ rke2_config_dir }}/config.yaml"
+    content: |
+      write-kubeconfig-mode: "0644"
+      tls-san:
+        - "{{ ansible_host }}"
+        - "{{ inventory_hostname }}"
+        - "127.0.0.1"
+      cluster-cidr: "{{ cluster_cidr }}"
+      service-cidr: "{{ service_cidr }}"
+      cluster-dns: "{{ cluster_dns }}"
+      cni: "{{ rke2_cni }}"
+      token: "{{ rke2_token }}"
+      disable:
+        - rke2-ingress-nginx
+      node-label:
+        - "node-role.kubernetes.io/master=true"
+      node-taint:
+        - "node-role.kubernetes.io/master=true:NoSchedule"
+      selinux: false
+    mode: '0600'
+
+- name: 检查 RKE2 是否已安装
+  stat:
+    path: /usr/local/bin/rke2
+  register: rke2_installed
+
+- name: 下载 RKE2 安装脚本
+  get_url:
+    url: https://get.rke2.io
+    dest: /tmp/install-rke2.sh
+    mode: '0755'
+  when: not rke2_installed.stat.exists
+
+- name: 安装 RKE2 Server
+  shell: |
+    INSTALL_RKE2_VERSION="{{ rke2_version }}" \
+    INSTALL_RKE2_CHANNEL="{{ rke2_channel }}" \
+    INSTALL_RKE2_TYPE="server" \
+    /tmp/install-rke2.sh
+  environment:
+    DEBIAN_FRONTEND: noninteractive
+  when: not rke2_installed.stat.exists
+
+- name: 启用 rke2-server 服务
+  systemd:
+    name: rke2-server
+    enabled: yes
+    daemon_reload: yes
+
+- name: 启动 rke2-server 服务
+  systemd:
+    name: rke2-server
+    state: started
+
+- name: 等待 RKE2 API 就绪
+  wait_for:
+    port: 6443
+    delay: 10
+    timeout: 300
+
+- name: 创建 kubectl 符号链接
+  file:
+    src: /var/lib/rancher/rke2/bin/kubectl
+    dest: /usr/local/bin/kubectl
+    state: link
+
+- name: 配置环境变量
+  copy:
+    dest: /etc/profile.d/rke2.sh
+    content: |
+      export KUBECONFIG=/etc/rancher/rke2/rke2.yaml
+      export PATH=$PATH:/var/lib/rancher/rke2/bin
+    mode: '0644'
+
+- name: 等待 node-token 生成
+  wait_for:
+    path: /var/lib/rancher/rke2/server/node-token
+    timeout: 60
+
+- name: 获取 node-token
+  slurp:
+    src: /var/lib/rancher/rke2/server/node-token
+  register: node_token
+
+- name: 保存 token 到本地
+  set_fact:
+    rke2_node_token: "{{ node_token.content | b64decode | trim }}"
+  delegate_to: localhost
+  delegate_facts: yes
+  run_once: yes
+
+- name: 验证 Server 安装
+  shell: |
+    /var/lib/rancher/rke2/bin/kubectl --kubeconfig /etc/rancher/rke2/rke2.yaml get nodes
+  register: server_status
+  changed_when: false
+  retries: 5
+  delay: 10
+
+- name: 显示 Server 状态
+  debug:
+    msg: "{{ server_status.stdout_lines }}"
+
+- name: Step 3 完成提示
+  debug:
+    msg: |
+      ✓ Step 3 完成 - RKE2 Server 安装成功
+      Token: {{ hostvars['localhost']['rke2_node_token'] }}
