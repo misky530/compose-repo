@@ -1,12 +1,12 @@
 # RKE2 Inventory - Debian
 
 [rke2_servers]
-rke2-master-01 ansible_host=192.168.1.10
+rke2-master-01 ansible_host=192.168.23.132
 
 [rke2_agents]
-rke2-worker-01 ansible_host=192.168.1.21
-rke2-worker-02 ansible_host=192.168.1.22
-rke2-worker-03 ansible_host=192.168.1.23
+rke2-worker-01 ansible_host=192.168.23.135
+rke2-worker-02 ansible_host=192.168.23.136
+rke2-worker-03 ansible_host=192.168.23.137
 
 [rke2_cluster:children]
 rke2_servers
