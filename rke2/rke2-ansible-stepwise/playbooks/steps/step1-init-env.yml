@@ -4,6 +4,7 @@
 
 - name: "Step 1 - 初始化基础环境"
   hosts: rke2_cluster
+  become: yes
   gather_facts: yes
   roles:
     - step1-init-env
