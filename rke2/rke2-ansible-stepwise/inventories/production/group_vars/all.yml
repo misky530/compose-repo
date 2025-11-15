@@ -12,8 +12,8 @@ cluster_dns: "10.43.0.10"
 rke2_cni: cilium
 
 # 集群认证 (请修改!)
-rke2_token: "CHANGE_ME_PLEASE"
-rke2_api_server: "https://192.168.1.10:9345"
+rke2_token: "f9312967878363961b218bcff7bf4216f8999e5a5a818fdf4e662b9518d7cc9e"
+rke2_api_server: "https://192.168.23.132:9345"
 
 # 系统配置
 timezone: Asia/Shanghai

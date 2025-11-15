@@ -1,9 +1,9 @@
 ---
 # Step 2: 准备服务器环境
 # 用途: 系统优化、安装依赖、配置内核参数
-
 - name: "Step 2 - 准备服务器环境"
   hosts: rke2_cluster
+  become: yes
   gather_facts: yes
   roles:
     - step2-prepare-server
