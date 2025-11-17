@@ -1,0 +1,72 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: drone-server
+  namespace: drone
+  labels:
+    app: drone-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: drone-server
+  template:
+    metadata:
+      labels:
+        app: drone-server
+    spec:
+      # 确保只调度到 Worker 节点
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: node-role.kubernetes.io/control-plane
+                    operator: DoesNotExist
+      containers:
+        - name: drone-server
+          image: drone/drone:2.20.0
+          ports:
+            - name: http
+              containerPort: 80
+              protocol: TCP
+            - name: https
+              containerPort: 443
+              protocol: TCP
+          # 环境变量来自 ConfigMap 和 Secret
+          envFrom:
+            - configMapRef:
+                name: drone-config
+            - secretRef:
+                name: drone-secret
+          # 资源限制（针对 2GB Worker 节点优化）
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "500m"
+          # 健康检查
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 80
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 80
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          # 持久化数据（可选，用于存储 Drone 数据库）
+          volumeMounts:
+            - name: data
+              mountPath: /data
+      volumes:
+        - name: data
+          emptyDir: {}
+          # 生产环境建议使用 PVC:
+          # persistentVolumeClaim:
+          #   claimName: drone-data

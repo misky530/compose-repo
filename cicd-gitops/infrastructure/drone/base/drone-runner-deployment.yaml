@@ -1,0 +1,69 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: drone-runner-kube
+  namespace: drone
+  labels:
+    app: drone-runner-kube
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: drone-runner-kube
+  template:
+    metadata:
+      labels:
+        app: drone-runner-kube
+    spec:
+      # 确保只调度到 Worker 节点
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: node-role.kubernetes.io/control-plane
+                    operator: DoesNotExist
+      serviceAccountName: drone-runner
+      containers:
+        - name: runner
+          image: drone/drone-runner-kube:1.0.0-beta.9
+          ports:
+            - name: http
+              containerPort: 3000
+              protocol: TCP
+          env:
+            # Drone Server 连接配置
+            - name: DRONE_RPC_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: drone-config
+                  key: DRONE_RPC_HOST
+            - name: DRONE_RPC_PROTO
+              valueFrom:
+                configMapKeyRef:
+                  name: drone-config
+                  key: DRONE_RPC_PROTO
+            - name: DRONE_RPC_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: drone-secret
+                  key: DRONE_RPC_SECRET
+            # Runner 特定配置
+            - name: DRONE_NAMESPACE_DEFAULT
+              value: "drone"
+            - name: DRONE_SERVICE_ACCOUNT_DEFAULT
+              value: "drone-runner"
+            - name: DRONE_RUNNER_CAPACITY
+              value: "2" # 并发执行的 pipeline 数量
+            - name: DRONE_RUNNER_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+          # 资源限制
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "500m"

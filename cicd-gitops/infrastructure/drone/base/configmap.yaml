@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: drone-config
+  namespace: drone
+data:
+  # Drone Server 地址（必须配置）
+  # 如果使用 NodePort，改为: http://192.168.23.135:<nodeport>
+  DRONE_SERVER_HOST: "drone-server.drone.svc.cluster.local"
+  DRONE_SERVER_PROTO: "http"
+
+  # RPC 协议
+  DRONE_RPC_PROTO: "http"
+  DRONE_RPC_HOST: "drone-server.drone.svc.cluster.local"
+
+  # Git 服务配置（这里先使用 Gitea 作为示例）
+  # 如果你使用 GitHub/GitLab，需要修改这些配置
+  # DRONE_GITEA_SERVER: "https://your-gitea-server.com"
+  # DRONE_GITEA_CLIENT_ID: "your-client-id"
+
+  # 日志级别
+  DRONE_LOGS_DEBUG: "true"
+  DRONE_LOGS_TRACE: "false"
