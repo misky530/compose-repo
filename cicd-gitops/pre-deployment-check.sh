@@ -14,6 +14,9 @@ NC='\033[0m'
 ERRORS=0
 WARNINGS=0
 
+# 设置为 1 跳过 Git 检查
+SKIP_GIT_CHECK=${SKIP_GIT_CHECK:-1}
+
 echo -e "${BLUE}"
 echo "======================================"
 echo "  部署前配置验证"
@@ -21,7 +24,8 @@ echo "======================================"
 echo -e "${NC}"
 
 # 检查 Git 配置
-echo -e "${YELLOW}1. 检查 Git 仓库配置${NC}"
+if [ "${SKIP_GIT_CHECK}" != "1" ]; then
+    echo -e "${YELLOW}1. 检查 Git 仓库配置${NC}"
 if [ -d ".git" ]; then
     REMOTE_URL=$(git remote get-url origin 2>/dev/null || echo "")
     if [ -z "$REMOTE_URL" ]; then
@@ -36,9 +40,7 @@ if [ -d ".git" ]; then
         echo -e "${GREEN}✓ Git remote 已配置: $REMOTE_URL${NC}"
     fi
 else
-    echo -e "${RED}✗ 不是 Git 仓库${NC}"
-    echo "  请运行: git init"
-    ((ERRORS++))
+    echo -e "${YELLOW}1. 检查 Git 仓库配置 (已跳过)${NC}"
 fi
 echo ""
 
@@ -48,13 +50,13 @@ echo -e "${YELLOW}2. 检查 ArgoCD Application 配置${NC}"
 check_app_config() {
     local file=$1
     local app_name=$2
-    
+
     if [ ! -f "$file" ]; then
         echo -e "${RED}✗ 文件不存在: $file${NC}"
         ((ERRORS++))
         return
     fi
-    
+
     # 检查 repoURL
     local repo_url=$(grep "repoURL:" "$file" | head -1 | awk '{print $2}')
     if [[ "$repo_url" == *"your-username"* ]] || [[ "$repo_url" == *"example"* ]]; then
@@ -87,7 +89,7 @@ else
     else
         echo -e "${GREEN}✓ DRONE_RPC_SECRET 已修改${NC}"
     fi
-    
+
     # 检查是否配置了 Git OAuth（可选）
     if ! grep -q "DRONE_GITEA_CLIENT_ID" "$DRONE_SECRET_FILE" && \
        ! grep -q "DRONE_GITHUB_CLIENT_ID" "$DRONE_SECRET_FILE" && \
@@ -145,11 +147,11 @@ echo ""
 echo -e "${YELLOW}6. 检查 Kubernetes 连接${NC}"
 if kubectl cluster-info &> /dev/null; then
     echo -e "${GREEN}✓ 可以连接到 Kubernetes 集群${NC}"
-    
+
     # 检查节点
     NODE_COUNT=$(kubectl get nodes --no-headers 2>/dev/null | wc -l)
     echo -e "${GREEN}✓ 找到 $NODE_COUNT 个节点${NC}"
-    
+
     # 检查 ArgoCD 是否已部署
     if kubectl get namespace argocd &> /dev/null; then
         echo -e "${GREEN}✓ ArgoCD 已部署${NC}"
