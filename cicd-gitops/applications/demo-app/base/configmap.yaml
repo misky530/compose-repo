@@ -1,0 +1,74 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: demo-html
+  namespace: demo
+data:
+  index.html: |
+    <!DOCTYPE html>
+    <html lang="zh-CN">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Demo App - GitOps with ArgoCD</title>
+        <style>
+            body {
+                font-family: Arial, sans-serif;
+                margin: 0;
+                padding: 0;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                min-height: 100vh;
+            }
+            .container {
+                text-align: center;
+                padding: 2rem;
+                background: rgba(255, 255, 255, 0.1);
+                border-radius: 20px;
+                backdrop-filter: blur(10px);
+                box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+            }
+            h1 {
+                font-size: 3rem;
+                margin-bottom: 1rem;
+            }
+            .badge {
+                display: inline-block;
+                padding: 0.5rem 1rem;
+                margin: 0.5rem;
+                background: rgba(255, 255, 255, 0.2);
+                border-radius: 50px;
+                font-size: 0.9rem;
+            }
+            .info {
+                margin-top: 2rem;
+                font-size: 1.1rem;
+            }
+            .emoji {
+                font-size: 4rem;
+                margin-bottom: 1rem;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="emoji">🚀</div>
+            <h1>GitOps Demo App</h1>
+            <p>部署成功！</p>
+            <div class="info">
+                <div class="badge">✅ Kubernetes RKE2</div>
+                <div class="badge">✅ ArgoCD</div>
+                <div class="badge">✅ Kustomize</div>
+                <div class="badge">✅ Drone CI</div>
+            </div>
+            <div class="info">
+                <p>此应用通过 ArgoCD 自动部署</p>
+                <p>配置存储在 Git 仓库中</p>
+                <p>实现了完整的 GitOps 工作流 🎉</p>
+            </div>
+        </div>
+    </body>
+    </html>

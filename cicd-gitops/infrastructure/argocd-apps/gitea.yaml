@@ -1,0 +1,45 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: gitea
+  namespace: argocd
+  # Finalizer 确保删除 Application 时同步删除 K8s 资源
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  # 项目名称
+  project: default
+  
+  # Git 仓库配置
+  source:
+    # ⚠️ 重要：部署前需要修改为你的 Git 仓库地址
+    repoURL: https://github.com/your-username/cicd-gitops.git
+    targetRevision: main  # 或 master
+    path: infrastructure/gitea/overlays/production  # Kustomize 路径
+  
+  # 目标集群
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: gitea
+  
+  # 同步策略
+  syncPolicy:
+    # 自动同步配置
+    automated:
+      prune: true       # 自动删除不再存在的资源
+      selfHeal: true    # 自动修复配置漂移
+      allowEmpty: false # 不允许空的应用
+    
+    # 同步选项
+    syncOptions:
+      - CreateNamespace=true  # 自动创建命名空间
+      - PrunePropagationPolicy=foreground
+      - PruneLast=true
+    
+    # 重试策略
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
