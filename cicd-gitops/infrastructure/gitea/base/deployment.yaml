@@ -1,19 +1,21 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: drone-server
-  namespace: drone
+  name: gitea
+  namespace: gitea
   labels:
-    app: drone-server
+    app: gitea
 spec:
   replicas: 1
+  strategy:
+    type: Recreate  # 因为使用 PVC，需要 Recreate 策略
   selector:
     matchLabels:
-      app: drone-server
+      app: gitea
   template:
     metadata:
       labels:
-        app: drone-server
+        app: gitea
     spec:
       # 确保只调度到 Worker 节点
       affinity:
@@ -24,49 +26,54 @@ spec:
               - key: node-role.kubernetes.io/control-plane
                 operator: DoesNotExist
       containers:
-      - name: drone-server
-        image: drone/drone:2.20.0
+      - name: gitea
+        image: gitea/gitea:1.21.3
+        imagePullPolicy: IfNotPresent
         ports:
         - name: http
-          containerPort: 80
+          containerPort: 3000
           protocol: TCP
-        - name: https
-          containerPort: 443
+        - name: ssh
+          containerPort: 22
           protocol: TCP
-        # 环境变量来自 ConfigMap 和 Secret
-        envFrom:
-        - configMapRef:
-            name: drone-config
-        - secretRef:
-            name: drone-secret
+        env:
+        - name: USER_UID
+          value: "1000"
+        - name: USER_GID
+          value: "1000"
         # 资源限制（针对 2GB Worker 节点优化）
         resources:
           requests:
-            memory: "128Mi"
+            memory: "256Mi"
             cpu: "100m"
           limits:
-            memory: "256Mi"
+            memory: "512Mi"
             cpu: "500m"
         # 健康检查
         livenessProbe:
           httpGet:
-            path: /healthz
-            port: 80
-          initialDelaySeconds: 30
+            path: /api/healthz
+            port: 3000
+          initialDelaySeconds: 60
           periodSeconds: 10
+          timeoutSeconds: 5
         readinessProbe:
           httpGet:
-            path: /healthz
-            port: 80
-          initialDelaySeconds: 10
+            path: /api/healthz
+            port: 3000
+          initialDelaySeconds: 30
           periodSeconds: 5
-        # 持久化数据（可选，用于存储 Drone 数据库）
+          timeoutSeconds: 3
+        # 挂载配置和数据
         volumeMounts:
         - name: data
           mountPath: /data
+        - name: config
+          mountPath: /etc/gitea
       volumes:
       - name: data
-        emptyDir: {}
-        # 生产环境建议使用 PVC:
-        # persistentVolumeClaim:
-        #   claimName: drone-data
+        persistentVolumeClaim:
+          claimName: gitea-data
+      - name: config
+        configMap:
+          name: gitea-config

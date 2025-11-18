@@ -12,25 +12,25 @@ metadata:
   name: drone-runner
   namespace: drone
 rules:
-  - apiGroups:
-      - ""
-    resources:
-      - secrets
-    verbs:
-      - create
-      - delete
-  - apiGroups:
-      - ""
-    resources:
-      - pods
-      - pods/log
-    verbs:
-      - get
-      - create
-      - delete
-      - list
-      - watch
-      - update
+- apiGroups:
+  - ""
+  resources:
+  - secrets
+  verbs:
+  - create
+  - delete
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  - pods/log
+  verbs:
+  - get
+  - create
+  - delete
+  - list
+  - watch
+  - update
 
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -43,6 +43,6 @@ roleRef:
   kind: Role
   name: drone-runner
 subjects:
-  - kind: ServiceAccount
-    name: drone-runner
-    namespace: drone
+- kind: ServiceAccount
+  name: drone-runner
+  namespace: drone

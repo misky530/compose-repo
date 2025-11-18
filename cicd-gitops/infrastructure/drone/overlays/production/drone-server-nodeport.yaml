@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: drone-server
+  namespace: drone
+spec:
+  type: NodePort
+  ports:
+  - port: 80
+    targetPort: http
+    protocol: TCP
+    name: http
+    nodePort: 30080  # 可以自定义端口号（范围 30000-32767）
