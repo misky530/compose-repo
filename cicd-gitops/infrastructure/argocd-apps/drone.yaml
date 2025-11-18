@@ -12,8 +12,8 @@ spec:
   
   # Git 仓库配置
   source:
-    # ⚠️ 重要：部署前需要修改为你的 Git 仓库地址
-    repoURL: https://github.com/your-username/cicd-gitops.git
+    # Git 仓库地址
+    repoURL: https://github.com/misky530/cicd-gitops.git
     targetRevision: main  # 或 master
     path: infrastructure/drone/overlays/production  # Kustomize 路径
   
