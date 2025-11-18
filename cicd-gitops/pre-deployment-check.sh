@@ -26,18 +26,23 @@ echo -e "${NC}"
 # 检查 Git 配置
 if [ "${SKIP_GIT_CHECK}" != "1" ]; then
     echo -e "${YELLOW}1. 检查 Git 仓库配置${NC}"
-if [ -d ".git" ]; then
-    REMOTE_URL=$(git remote get-url origin 2>/dev/null || echo "")
-    if [ -z "$REMOTE_URL" ]; then
-        echo -e "${RED}✗ Git remote 未配置${NC}"
-        echo "  请运行: git remote add origin <your-repo-url>"
-        ((ERRORS++))
-    elif [[ "$REMOTE_URL" == *"your-username"* ]] || [[ "$REMOTE_URL" == *"example"* ]]; then
-        echo -e "${RED}✗ Git remote 仍是示例地址: $REMOTE_URL${NC}"
-        echo "  请修改为实际仓库地址"
-        ((ERRORS++))
+    if [ -d ".git" ]; then
+        REMOTE_URL=$(git remote get-url origin 2>/dev/null || echo "")
+        if [ -z "$REMOTE_URL" ]; then
+            echo -e "${RED}✗ Git remote 未配置${NC}"
+            echo "  请运行: git remote add origin <your-repo-url>"
+            ((ERRORS++))
+        elif [[ "$REMOTE_URL" == *"your-username"* ]] || [[ "$REMOTE_URL" == *"example"* ]]; then
+            echo -e "${RED}✗ Git remote 仍是示例地址: $REMOTE_URL${NC}"
+            echo "  请修改为实际仓库地址"
+            ((ERRORS++))
+        else
+            echo -e "${GREEN}✓ Git remote 已配置: $REMOTE_URL${NC}"
+        fi
     else
-        echo -e "${GREEN}✓ Git remote 已配置: $REMOTE_URL${NC}"
+        echo -e "${RED}✗ 不是 Git 仓库${NC}"
+        echo "  请运行: git init"
+        ((ERRORS++))
     fi
 else
     echo -e "${YELLOW}1. 检查 Git 仓库配置 (已跳过)${NC}"
